@@ -1,0 +1,203 @@
+{% extends 'student.html' %}
+{% load static %}
+{% block css %}
+    <link rel="stylesheet" href="{% static 'plugins/bootstrap-datepicker/css/bootstrap-datepicker.min.css' %}">
+    <style>
+        .div_style {
+            width: 10%;
+            height: 30px;
+            float: left;
+            border: 1px solid black;
+            text-align: center;
+            line-height: 30px;
+        }
+
+        .td_active {
+            background: yellow;
+        }
+
+        .td_save {
+            background: lightblue;
+        }
+    </style>
+{% endblock %}
+{% block content %}
+    <div class="container">
+        <div class="panel panel-info">
+            <div class="panel-heading">
+                <h3 class="panel-title">{{ place_obj.name }}--{{ place_obj.campus }}</h3>
+            </div>
+            <div class="panel-body">
+                <div class="text-center">
+                    <span style="border:thin solid lightblue; background:lightblue">&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                    已被预约
+                    <span style="border:thin solid black; background:white">&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                    未被预约
+                </div>
+                <div class="calender pull-right">
+                    <form method="get">
+                        <div class="input-group" style="width: 230px;">
+                            <div style="width: 100%">
+                                <span class="text-warning" style="width: 100%">注意：当前日期高亮显示</span>
+                            </div>
+                            <input type='text' name="time" class="form-control" style="width: 80%" id='datetimepicker'
+                                   placeholder="请选择日期"/>
+                            <button class="btn btn-primary" type="submit">
+                                <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div style="width: 100%; height: 100px; float: right; margin-top: 50px">
+                    <div style="width: 100%; height: 50px">
+                        <div class="div_style">时间段</div>
+                        {% for i in list %}
+                            <div class="div_style">{{ i }}</div>
+                        {% endfor %}
+                        <div class="div_style"></div>
+                        {{ htmls|safe }}
+                    </div>
+                    <div class="col-md-offset-6" style="margin-top: 25px">
+                        <button class="btn btn-info" type="button" data-toggle="modal" data-target="#myModal">预 约
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">预约信息</h4>
+                </div>
+                <div class="modal-body" id="id_div">
+                    <div class="clearfix">
+                        <form id="bkMsg">
+                            <div class="col-xs-6">
+                                <div class="form-group" style="position: relative;margin-bottom: 20px;">
+                                    <label>场地ID
+                                        <input type="text" name="place" class="form-control" value={{ place_obj.id }}/>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-xs-6">
+                                <div class="form-group" style="position: relative;margin-bottom: 20px;">
+                                    <label>所属校区
+                                        <input type="text" name="campus" class="form-control"
+                                               value={{ place_obj.campus }}/>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-xs-6">
+                                <div class="form-group" style="position: relative;margin-bottom: 20px;">
+                                    <label>日 期
+                                        <input type='text' name="date" class="form-control" value={{ date }}/>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-xs-6">
+                                <div class="form-group" style="position: relative;margin-bottom: 20px;">
+                                    <label>时间段
+                                        <select name="bkTime" class="form-control">
+                                            <option value="10:00-11:00">10:00-11:00</option>
+                                            <option value="13:00-14:00">13:00-14:00</option>
+                                            <option value="14:00-15:00">14:00-15:00</option>
+                                            <option value="15:00-16:00">15:00-16:00</option>
+                                            <option value="16:00-17:00">16:00-17:00</option>
+                                            <option value="17:00-18:00">17:00-18:00</option>
+                                            <option value="18:00-19:00">18:00-19:00</option>
+                                            <option value="19:00-20:00">19:00-20:00</option>
+                                            <option value="20:00-21:00">20:00-21:00</option>
+                                        </select>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-xs-6">
+                                <div class="form-group" style="position: relative;margin-bottom: 20px;">
+                                    <label>人 数
+                                        <input type='text' name="people" class="form-control"
+                                               placeholder="请输入使用人数" required="required"></label>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <span class="error-msg" style="color: red; display: block; text-align: center"></span>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">取 消</button>
+                    <button id="bkSave" type="button" class="btn btn-primary">确 定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block js %}
+    <script src="{% static 'plugins/bootstrap-datepicker/js/bootstrap-datepicker.min.js' %}"></script>
+    <script src="{% static 'plugins/bootstrap-datepicker/locales/bootstrap-datepicker.zh-CN.min.js' %}"></script>
+    <script>
+        let myDate = new Date();
+        let today = myDate.toDateString();
+        let endYear = myDate.getFullYear();
+        let endMonth = myDate.getMonth() + 1;
+        let endDay = myDate.getDate() + 3;
+
+        $(function () {
+            date();
+            tdt();
+            bookSave();
+        });
+
+        function date() {
+            $('#datetimepicker').datepicker({
+                format: 'yyyy-mm-dd',
+                todayHighlight: true,
+                startDate: today,
+                endDate: endYear + '-' + endMonth + '-' + endDay,
+                language: "zh-CN",
+                autoclose: true,
+                todayBtn: "linked"
+            });
+        }
+
+        function tdt() {
+            $(".td").click(function () {
+                if ($(this).hasClass('td_active')) {
+                    $(this).removeClass('td_active');
+                } else if ($(this).hasClass('td_save')) {
+                    alert("该时间段已被预约!");
+                } else {
+                    $(this).addClass('td_active');
+                }
+            });
+        }
+
+        function bookSave() {
+            $("#bkSave").click(function () {
+                $(".error_msg").empty();
+                $.ajax({
+                    url: "/book/save/",
+                    type: "POST",
+                    data: $("#bkMsg").serialize(),
+                    dataType: "JSON",
+                    success: function (res) {
+                        if (res.status) {
+                            $("#bkMsg")[0].reset();
+                            $('#myModal').modal('hide');
+                            location.reload();
+                        } else {
+                            $('#id_div').next().text(res.errors);
+                        }
+                    }
+
+                });
+            });
+        }
+    </script>
+
+{% endblock %}

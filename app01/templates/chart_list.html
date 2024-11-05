@@ -1,0 +1,59 @@
+{% extends 'admin.html' %}
+{% load static %}
+{% block content %}
+    <div class="container">
+        <div class="panel panel-default">
+            <div class="panel-heading">柱状图</div>
+            <div class="panel-body">
+                <div id="t1" style="width: 100%; height:500px;"></div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block js %}
+    <script src="{% static 'js/echarts.min.js' %}"></script>
+    <script>
+        $(function () {
+            initBar();
+        });
+
+        function initBar() {
+
+            // 基于准备好的dom，初始化echarts实例
+            let myChart = echarts.init(document.getElementById('t1'));
+
+            // 指定图表的配置项和数据
+            let option = {
+                title: {
+                    text: '预约统计图',
+                    left: 'center',
+                },
+                tooltip: {},
+                legend: {
+                    data: [],
+                    bottom: 0
+                },
+                xAxis: {
+                    data: []
+                },
+                yAxis: {},
+                series: []
+            };
+            $.ajax({
+                url: "/data/statistics/",
+                type: "get",
+                dataType: "json",
+                success: function (res) {
+                    if (res.status) {
+                        option.legend.data = res.data.legend;
+                        option.xAxis.data = res.data.x_axis;
+                        option.series = res.data.series;
+                        // 使用刚指定的配置项和数据显示图表。
+                        myChart.setOption(option);
+                    }
+                }
+            });
+        }
+
+    </script>
+{% endblock %}

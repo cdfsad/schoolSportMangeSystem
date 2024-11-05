@@ -1,0 +1,67 @@
+{% extends 'student.html' %}
+{% block content %}
+    <div class="container">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <span class="glyphicon glyphicon-th-list" aria-hidden="true"></span>
+                我的预约
+            </div>
+            <table class="table table-bordered">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>场 地</th>
+                    <th>使用人数</th>
+                    <th>所属校区</th>
+                    <th>日 期</th>
+                    <th>时间段</th>
+                    <th>状 态</th>
+                    <th>操 作</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for obj in queryset %}
+                    <tr>
+                        <th>{{ obj.id }}</th>
+                        <td>{{ obj.place_name.name}}</td>
+                        <th>{{ obj.campus }}</th>
+                        <td>{{ obj.people }}</td>
+                        <td>{{ obj.date }}</td>
+                        <td>{{ obj.time }}</td>
+                        <td>{{ obj.get_status_display }}</td>
+                        <td>
+                            <input id="{{ obj.id }}" class="btn btn-primary btn-xs btn-delete1" type="button" value="取消预约"/>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}
+{% block js %}
+    <script>
+    let stu_did;
+        $(function () {
+           $(".btn-delete1").click(function () {
+               stu_did = $(this).attr("id");
+               $.ajax({
+                   url: "/book/delete1/",
+                   type: "get",
+                   data: {
+                       stu_did: stu_did
+                   },
+                   dataType: "JSON",
+                   success: function (res) {
+                       if (res.status) {
+                           alert("取消成功！");
+                           location.reload();
+                       } else {
+                           alert("出错了!");
+                       }
+                   }
+               });
+           });
+        });
+    </script>
+{% endblock %}

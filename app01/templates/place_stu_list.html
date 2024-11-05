@@ -1,0 +1,54 @@
+{% extends 'student.html' %}
+{% block content %}
+    <div class="container">
+        <div style="margin-bottom: 10px" class="clearfix">
+            <div style="float: right; width: 300px">
+                <form method="get">
+                    <div class="input-group">
+                        <input name="q" type="text" class="form-control" placeholder="请输入场地">
+                        <span class="input-group-btn">
+                            <button class="btn btn-default" type="submit">
+                                <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                            </button>
+                        </span>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <span class="glyphicon glyphicon-th-list" aria-hidden="true"></span>
+                场地列表
+            </div>
+            <table class="table table-bordered">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>场 地</th>
+                    <th>容纳人数</th>
+                    <th>所属校区</th>
+                    <th>状 态</th>
+                    <th>操 作</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for obj in queryset %}
+                    <tr>
+                        <th>{{ obj.id }}</th>
+                        <td>{{ obj.name }}</td>
+                        <td>{{ obj.people }}</td>
+                        <td>{{ obj.campus }}</td>
+                        <td>{{ obj.get_use_display }}</td>
+                        <td>
+                            <a class="btn btn-primary btn-xs" href="/place/{{ request.session.info.id }}/{{ obj.id }}/book/">预 约</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <ul class="pagination" style="float: left">
+            {{ page_string }}
+        </ul>
+    </div>
+{% endblock %}

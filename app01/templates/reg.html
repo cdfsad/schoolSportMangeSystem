@@ -1,0 +1,77 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>注册</title>
+    <link rel="stylesheet" href="{% static 'plugins/bootstrap-3.4.1-dist/css/bootstrap.min.css' %}">
+    <style>
+        .account {
+            width: 400px;
+            border: 1px solid #dddddd;
+            border-radius: 5px;
+            box-shadow: 5px 5px 20px #aaa;
+            background-color: rgba(255, 255, 255, 0.473);
+
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 100px;
+            padding: 20px 40px;
+
+        }
+
+        .account h2 {
+            margin-top: -10px;
+            margin-left: -35px;
+        }
+
+        body {
+            background-image: url("../static/img/banner_3.jpeg");
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-position: center;
+            background-size: cover;
+        }
+    </style>
+</head>
+<body>
+<div class="account">
+    <h2><img src="{% static 'img/广师大.png' %}" alt="广东技术师范大学"></h2>
+    <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="form-group">
+            <label>{{ form.username.label }}</label>
+            {{ form.username }}
+            <span style="color: red;">{{ form.username.errors.0 }}</span>
+        </div>
+        <div class="form-group">
+            <label>{{ form.id_number.label }}</label>
+            {{ form.id_number }}
+            <span style="color: red;">{{ form.id_number.errors.0 }}</span>
+        </div>
+        <div class="form-group">
+            <label>{{ form.password.label }}</label>
+            {{ form.password }}
+            <span style="color: red;">{{ form.password.errors.0 }}</span>
+        </div>
+        <div class="form-group">
+            <label>{{ form.confirm_password.label }}</label>
+            {{ form.confirm_password }}
+            <span style="color: red;">{{ form.confirm_password.errors.0 }}</span>
+        </div>
+        <input id="btnEdit" type="submit" class="btn btn-primary navbar-form" value="注 册" />
+        <input type="reset" class="btn btn-danger navbar-form" value="重 置" />
+        <a class="navbar-form" href="/index/">返回首页</a>
+    </form>
+</div>
+<script src="{% static 'js/jquery-3.6.0.min.js' %}"></script>
+<script src="{% static 'plugins/bootstrap-3.4.1-dist/js/bootstrap.min.js' %}"></script>
+<script>
+    $(function () {
+        $("#btnEdit").click(function () {
+            alert("注册成功");
+        });
+    });
+</script>
+</body>
+</html>

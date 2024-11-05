@@ -1,0 +1,106 @@
+{% extends 'admin.html' %}
+{% block content %}
+    <div class="container">
+        <div style="margin-bottom: 10px" class="clearfix">
+            <div style="float: right; width: 300px">
+                <form method="get">
+                    <div class="input-group">
+                        <input name="q" type="text" class="form-control" placeholder="请输入0(待审批)，1(已审批)">
+                        <span class="input-group-btn">
+                            <button class="btn btn-default" type="submit">
+                                <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                            </button>
+                        </span>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <span class="glyphicon glyphicon-th-list" aria-hidden="true"></span>
+                预约列表
+            </div>
+            <table class="table table-bordered">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>预约用户</th>
+                    <th>场 地</th>
+                    <th>所属校区</th>
+                    <th>使用人数</th>
+                    <th>日 期</th>
+                    <th>时间段</th>
+                    <th>状 态</th>
+                    <th>操 作</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for obj in queryset %}
+                    <tr>
+                        <th>{{ obj.id }}</th>
+                        <td>{{ obj.book_name.username }}</td>
+                        <td>{{ obj.place_name.name }}</td>
+                        <th>{{ obj.campus }}</th>
+                        <td>{{ obj.people }}</td>
+                        <td>{{ obj.date }}</td>
+                        <td>{{ obj.time }}</td>
+                        <td>{{ obj.get_status_display }}</td>
+                        <td>
+                            <input id="{{ obj.id }}" class="btn btn-primary btn-xs btn-pass" type="button" value="审 批"/>
+                            <input id="{{ obj.id }}" class="btn btn-danger btn-xs btn-delete" type="button"
+                                   value="删 除"/>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <ul class="pagination" style="float: left">
+            {{ page_string }}
+        </ul>
+    </div>
+{% endblock %}
+{% block js %}
+    <script>
+        let bid;
+        $(function () {
+            $(".btn-pass").click(function () {
+                bid = $(this).attr("id");
+                $.ajax({
+                    url: "/book/agree/",
+                    type: "GET",
+                    data: {
+                        bid: bid
+                    },
+                    dataType: "JSON",
+                    success: function (res) {
+                        if (res.status) {
+                            location.reload();
+                        } else {
+                            alert("出错了!");
+                        }
+                    }
+                });
+            });
+            $(".btn-delete").click(function () {
+                bid = $(this).attr("id");
+                $.ajax({
+                    url: "/book/delete/",
+                    type: "GET",
+                    data: {
+                        bid: bid
+                    },
+                    dataType: "JSON",
+                    success: function (res) {
+                        if (res.status) {
+                            alert("删除成功！");
+                            location.reload();
+                        } else {
+                            alert("出错了!");
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+{% endblock %}

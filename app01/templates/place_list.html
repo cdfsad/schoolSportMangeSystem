@@ -1,0 +1,230 @@
+{% extends 'admin.html' %}
+{% block content %}
+    <div class="container">
+        <div style="margin-bottom: 10px" class="clearfix">
+            <a class="btn btn-success" id="btnAdd">
+                <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>
+                新建场地
+            </a>
+            <div style="float: right; width: 300px">
+                <form method="get">
+                    <div class="input-group">
+                        <input name="q" type="text" class="form-control" placeholder="请输入场地">
+                        <span class="input-group-btn">
+                            <button class="btn btn-default" type="submit">
+                                <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                            </button>
+                        </span>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <span class="glyphicon glyphicon-th-list" aria-hidden="true"></span>
+                场地列表
+            </div>
+            <table class="table table-bordered">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>场 地</th>
+                    <th>容纳人数</th>
+                    <th>所属校区</th>
+                    <th>状 态</th>
+                    <th>操 作</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for obj in queryset %}
+                    <tr>
+                        <th>{{ obj.id }}</th>
+                        <td>{{ obj.name }}</td>
+                        <td>{{ obj.people }}</td>
+                        <td>{{ obj.campus }}</td>
+                        <td>{{ obj.get_use_display }}</td>
+                        <td>
+                            <input id="{{ obj.id }}" class="btn btn-primary btn-xs btn-edit" type="button" value="编 辑"/>
+                            <input id="{{ obj.id }}" class="btn btn-danger btn-xs btn-delete" type="button" value="删 除"/>
+                            <a class="btn btn-primary btn-xs" href="/place/{{ request.session.info.id }}/{{ obj.id }}/book/">预 约</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <ul class="pagination" style="float: left">
+            {{ page_string }}
+        </ul>
+    </div>
+
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="myModalLabel"></h4>
+                </div>
+                <div class="modal-body">
+                    <form id="formAdd">
+                        <div class="clearfix">
+                            {% for field in form %}
+                                <div class="col-xs-6">
+                                    <div class="form-group" style="position: relative;margin-bottom: 20px;">
+                                        <label>{{ field.label }}</label>
+                                        {{ field }}
+                                        <span class="error-msg" style="color: red;position: absolute;"></span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">取 消</button>
+                    <button id="btnSave" type="button" class="btn btn-primary">保 存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="myDeleteModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="alert alert-danger alert-dismissible fade in" role="alert">
+                <h4>是否确定删除?</h4>
+                <p style="margin: 10px 0">删除后，所有关联的相关数据都会被删除。</p>
+                <p style="text-align: right">
+                    <button id="btnConfirmDelete" type="button" class="btn btn-danger">确 定</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">取 消</button>
+                </p>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block js %}
+    <script>
+        let DELETE_ID;
+        let EDIT_ID;
+
+        $(function () {
+            btnAdd();
+            btnSave();
+            btnDelete();
+            btnConfirmDelete();
+            btnEdit();
+        });
+
+        function btnAdd() {
+            $('#btnAdd').click(function () {
+                EDIT_ID = undefined;
+                $("#formAdd")[0].reset();
+                $('#myModalLabel').text('新建场地');
+                $('#myModal').modal('show');
+            });
+        }
+
+        function btnSave() {
+            $('#btnSave').click(function () {
+                $('.error-msg').empty();
+                if (EDIT_ID) {
+                    $.ajax({
+                        url: "/place/edit/save/" + "?edit_id=" + EDIT_ID,
+                        type: "POST",
+                        data: $('#formAdd').serialize(),
+                        dataType: "JSON",
+                        success: function (res) {
+                            if (res.status) {
+                                alert("编辑成功")
+                                $("#formAdd")[0].reset();
+                                $('#myModal').modal('hide');
+                                location.reload()
+                            } else {
+                                $.each(res.errors, function (name, errorList) {
+                                    $('#id_' + name).next().text(errorList[0]);
+                                })
+                            }
+                        }
+                    });
+                } else {
+                    $('.error-msg').empty();
+                    $.ajax({
+                        url: "/place/add/",
+                        type: "POST",
+                        data: $('#formAdd').serialize(),
+                        dataType: "JSON",
+                        success: function (res) {
+                            if (res.status) {
+                                alert("新建成功");
+                                $("#formAdd")[0].reset();
+                                $('#myModal').modal('hide');
+                                location.reload()
+                            } else {
+                                $.each(res.errors, function (name, errorList) {
+                                    $('#id_' + name).next().text(errorList[0]);
+                                })
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        function btnDelete() {
+            $(".btn-delete").click(function () {
+                $('#myDeleteModal').modal('show');
+                DELETE_ID = $(this).attr("id");
+            });
+        }
+
+        function btnConfirmDelete() {
+            $("#btnConfirmDelete").click(function () {
+                $.ajax({
+                    url: "/place/delete/", // ==> /student/delete/?pid=xxx
+                    type: "GET",
+                    data: {
+                        pid: DELETE_ID
+                    },
+                    dataType: "JSON",
+                    success: function (res) {
+                        if (res.status) {
+                            location.reload();
+                        } else {
+                            alert('出错了')
+                        }
+                    }
+                });
+            });
+        }
+
+        function btnEdit() {
+            $(".btn-edit").click(function () {
+                $('.error-msg').empty();
+                EDIT_ID = $(this).attr("id")
+                $.ajax({
+                    url: "/place/edit/",
+                    type: "GET",
+                    data: {
+                        pid: EDIT_ID
+                    },
+                    dataType: "JSON",
+                    success: function (res) {
+                        if (res.status) {
+                            $('#myModalLabel').text('编辑');
+                            $.each(res.data, function (name, value) {
+                                $("#id_" + name).val(value);
+                            });
+                            $("#myModal").modal('show');
+                        } else {
+                            alert("出错了")
+                        }
+                    }
+                })
+            });
+
+        }
+
+    </script>
+{% endblock %}
