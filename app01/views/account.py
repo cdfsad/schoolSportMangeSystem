@@ -1,10 +1,12 @@
 from io import BytesIO
 
-from django.shortcuts import render, redirect, HttpResponse
-from app01 import models
-from app01.utils.form import LoginForm, EditPwdForm, RegForm, RegLoginForm
+from django.shortcuts import HttpResponse, redirect, render
 
+from app01 import models
+from app01.services import account_service
 from app01.utils.auth_code import check_code
+from app01.utils.form import EditPwdForm, LoginForm, RegForm, RegLoginForm
+from app01.utils.permissions import admin_required
 
 
 def index(request):
@@ -25,58 +27,70 @@ def reg(request):
 
 def reg_login(request):
     if request.method == 'GET':
-        reg_login_form = RegLoginForm()
-        return render(request, 'reg_login.html', {'form': reg_login_form})
-    reg_login_form = RegLoginForm(data=request.POST)
-    if reg_login_form.is_valid():
-        user_input_code = reg_login_form.cleaned_data.pop('code')
-        img_code = request.session.get('img_code', '')
+        form = RegLoginForm()
+        return render(request, 'reg_login.html', {'form': form})
+    form = RegLoginForm(data=request.POST)
+    if form.is_valid():
+        user_input_code = form.cleaned_data.pop('code')
+        # 验证码一次性校验(读取后立即删除,防重放)
+        img_code = request.session.pop('img_code', '')
         if user_input_code.upper() != img_code.upper():
-            reg_login_form.add_error('code', '验证码错误')
-            return render(request, 'reg_login.html', {'form': reg_login_form})
-        obj = models.Account.objects.filter(**reg_login_form.cleaned_data).first()
-        if not obj:
-            reg_login_form.add_error('password', '用户名或密码错误')
-            return render(request, 'reg_login.html', {'form': reg_login_form})
-        request.session['info'] = {'id': obj.id, 'name': obj.username}
+            form.add_error('code', '验证码错误')
+            return render(request, 'reg_login.html', {'form': form})
+        # 按 username 查询(account_service 封装认证逻辑)
+        username = form.cleaned_data.get('username')
+        password = form.cleaned_data.get('password')
+        user = account_service.authenticate(username, password)
+        if not user:
+            form.add_error('password', '用户名或密码错误')
+            return render(request, 'reg_login.html', {'form': form})
+        request.session['info'] = {
+            'id': user.id,
+            'name': user.first_name or user.username,
+            'role': user.role,
+        }
         request.session.set_expiry(60 * 60 * 24 * 7)
         return render(request, 'student.html')
-    return render(request, 'reg_login.html', {'form': reg_login_form})
+    return render(request, 'reg_login.html', {'form': form})
 
 
 def login(request):
     if request.method == 'GET':
-        login_form = LoginForm()
-        return render(request, 'login.html', {'form': login_form})
+        form = LoginForm()
+        return render(request, 'login.html', {'form': form})
 
-    login_form = LoginForm(data=request.POST)
-    if login_form.is_valid():
-        # 验证成功，获取到证件号、密码、输入的验证码
-        # 验证码的校验
-        user_input_code = login_form.cleaned_data.pop('code')
-        img_code = request.session.get('img_code', '')
+    form = LoginForm(data=request.POST)
+    if form.is_valid():
+        user_input_code = form.cleaned_data.pop('code')
+        # 验证码一次性校验(读取后立即删除,防重放)
+        img_code = request.session.pop('img_code', '')
         if user_input_code.upper() != img_code.upper():
-            login_form.add_error('code', '验证码错误')
-            return render(request, 'login.html', {'form': login_form})
-        # 去数据库校验用户名和密码是否正确，获取用户对象，None
-        obj = models.Account.objects.filter(**login_form.cleaned_data).first()
-        if not obj:
-            login_form.add_error('password', '用户名或密码错误')
-            return render(request, 'login.html', {'form': login_form})
-        # 用户名和密码正确
-        # 网站生成随机字符串，写到用户浏览器的cookie中;再写入到session中
-        request.session['info'] = {'id': obj.id, 'name': obj.username}
+            form.add_error('code', '验证码错误')
+            return render(request, 'login.html', {'form': form})
+        # 校内登录:学号(id_number)在导入时已写入 username(account_service 认证)
+        id_number = form.cleaned_data.get('id_number')
+        password = form.cleaned_data.get('password')
+        user = account_service.authenticate(id_number, password)
+        if not user:
+            form.add_error('password', '用户名或密码错误')
+            return render(request, 'login.html', {'form': form})
+        request.session['info'] = {
+            'id': user.id,
+            'name': user.first_name or user.username,
+            'role': user.role,
+        }
         request.session.set_expiry(60 * 60 * 24 * 7)
-        if not obj.auth:
+        if user.role == 'student':
             return redirect('/common/')
         return redirect('/admin/')
-    return render(request, 'login.html', {'form': login_form})
+    return render(request, 'login.html', {'form': form})
 
 
 def common(request):
     return render(request, 'student.html')
 
 
+@admin_required
 def admin(request):
     return render(request, 'admin.html')
 
@@ -87,27 +101,33 @@ def logout(request):
 
 
 def image_code(request):
-    # 调用pillow函数，生成图片
+    # 调用 pillow 生成验证码图片
     img, code_string = check_code()
-    # 写入到自己的session中，以便后续获取验证码再进行校验
     request.session['img_code'] = code_string
-    # 给session设置60s超时
     request.session.set_expiry(60)
     stream = BytesIO()
     img.save(stream, 'png')
     return HttpResponse(stream.getvalue())
 
 
-def change_pwd(request, nid):
-    row_obj = models.Account.objects.filter(id=nid).first()
-    title = '修改密码 - {}'.format(row_obj.username)
+def change_pwd(request):
+    # IDOR 修复:用户 ID 从 session 取,而非 URL 参数
+    nid = request.session.get('info', {}).get('id')
+    if not nid:
+        return redirect('/index/')
+    row_obj = models.CustomUser.objects.filter(id=nid).first()
+    if not row_obj:
+        return redirect('/index/')
+    title = '修改密码 - {}'.format(row_obj.first_name or row_obj.username)
     if request.method == 'GET':
-        form = EditPwdForm()
-        if not row_obj.auth:
+        form = EditPwdForm(instance=row_obj)
+        if row_obj.role == 'student':
             return render(request, 'change1.html', {'form': form, 'title': title})
         return render(request, 'change2.html', {'form': form, 'title': title})
     form = EditPwdForm(data=request.POST, instance=row_obj)
     if form.is_valid():
         form.save()
+        # 改密成功后清除 session,强制重新登录
+        request.session.flush()
         return redirect('/login/')
     return render(request, 'change1.html', {'form': form, 'title': title})

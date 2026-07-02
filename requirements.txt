@@ -1,0 +1,38 @@
+# ============================================================
+# 高校体育场馆管理系统 - Python 依赖
+# 安装: pip install -r requirements.txt
+# ============================================================
+
+# ===== 核心框架(P0) =====
+Django==5.1.2
+django-environ==0.14.0          # 配置外置,从 .env 读取密钥/数据库等
+PyMySQL==1.1.1                 # MySQL 驱动(通过 install_as_MySQLdb 猴子补丁)
+
+# ===== 功能依赖(P0) =====
+Pillow==11.0.0                 # 图片验证码生成
+openpyxl==3.1.5                # Excel 批量导入学生
+
+# ===== 生产 WSGI 服务器(Linux 部署用;Windows 开发可注释) =====
+gunicorn==23.0.0
+
+# ===== DRF + JWT + 跨域(P2a 前后端分离 API)=====
+djangorestframework==3.15.2
+djangorestframework-simplejwt==5.3.1
+django-filter==24.3
+django-cors-headers==4.6.0
+
+# ===== 缓存(P2a Redis cache;本地无 Redis 可用 locmem 兜底)=====
+redis==5.2.0
+django-redis==5.4.0
+
+# ===== 异步(P3 Celery,本轮不解注释)=====
+# celery==5.4.0
+# django-celery-beat==2.7.0
+#
+# 测试/代码质量(P1)
+pytest==8.3.3
+pytest-django==4.9.0
+pytest-cov==5.0.0
+factory-boy==3.3.1
+coverage==7.6.4
+ruff==0.7.4

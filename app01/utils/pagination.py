@@ -27,12 +27,13 @@
     </ul>
 
 """
-from django.utils.safestring import mark_safe
+
 import copy
+
+from django.utils.safestring import mark_safe
 
 
 class Pagination(object):
-
     def __init__(self, request, queryset, page_size=10, page_param="page", plus=5):
         """
         :param request: 请求的对象
@@ -54,7 +55,7 @@ class Pagination(object):
         self.page_size = page_size
         self.start = (page - 1) * page_size
         self.end = page * page_size
-        self.page_queryset = queryset[self.start:self.end]
+        self.page_queryset = queryset[self.start : self.end]
         total_count = queryset.count()
         total_page_count, div = divmod(total_count, page_size)
         if div:

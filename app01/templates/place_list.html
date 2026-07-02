@@ -46,7 +46,7 @@
                         <td>
                             <input id="{{ obj.id }}" class="btn btn-primary btn-xs btn-edit" type="button" value="编 辑"/>
                             <input id="{{ obj.id }}" class="btn btn-danger btn-xs btn-delete" type="button" value="删 除"/>
-                            <a class="btn btn-primary btn-xs" href="/place/{{ request.session.info.id }}/{{ obj.id }}/book/">预 约</a>
+                            <a class="btn btn-primary btn-xs" href="/place/{{ obj.id }}/book/">预 约</a>
                         </td>
                     </tr>
                 {% endfor %}
@@ -182,8 +182,8 @@
         function btnConfirmDelete() {
             $("#btnConfirmDelete").click(function () {
                 $.ajax({
-                    url: "/place/delete/", // ==> /student/delete/?pid=xxx
-                    type: "GET",
+                    url: "/place/delete/",
+                    type: "POST",
                     data: {
                         pid: DELETE_ID
                     },

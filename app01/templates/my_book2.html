@@ -52,7 +52,7 @@
                 admin_did = $(this).attr("id");
                 $.ajax({
                     url: "/book/delete2/",
-                    type: "GET",
+                    type: "POST",
                     data: {
                         admin_did: admin_did
                     },

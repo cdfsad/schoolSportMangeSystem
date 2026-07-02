@@ -54,10 +54,10 @@
                 {% for obj in queryset %}
                     <tr>
                         <th>{{ obj.id }}</th>
-                        <td>{{ obj.username }}</td>
+                        <td>{{ obj.first_name }}</td>
                         <td>{{ obj.id_number }}</td>
                         <td>******</td>
-                        <td>{{ obj.get_auth_display }}</td>
+                        <td>{{ obj.get_role_display }}</td>
                         <td>
                             <input id="{{ obj.id }}" class="btn btn-primary btn-xs btn-edit" type="button" value="编 辑"/>
                             <input id="{{ obj.id }}" class="btn btn-danger btn-xs btn-delete" type="button"
@@ -198,8 +198,8 @@
         function btnConfirmDelete() {
             $("#btnConfirmDelete").click(function () {
                 $.ajax({
-                    url: "/student/delete/", // ==> /student/delete/?uid=xxx
-                    type: "GET",
+                    url: "/student/delete/",
+                    type: "POST",
                     data: {
                         uid: DELETE_ID
                     },

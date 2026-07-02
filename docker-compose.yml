@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-INTJ123456}
+      MYSQL_DATABASE: mydb1
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    # P3 阶段 Celery 使用;P1 先起占位
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  web:
+    build: .
+    env_file: .env
+    environment:
+      # 容器内连接 db 服务(主机名为服务名 db)
+      DATABASE_URL: mysql://root:${DB_PASSWORD:-INTJ123456}@db:3306/mydb1
+      SECURE_SSL_REDIRECT: "False"
+      SESSION_COOKIE_SECURE: "False"
+      CSRF_COOKIE_SECURE: "False"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./media:/app/media
+      - ./staticfiles:/app/staticfiles
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn --config gunicorn.conf.py 高校体育场馆管理系统.wsgi:application"
+
+  nginx:
+    image: nginx:alpine
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./staticfiles:/usr/share/nginx/static:ro
+      - ./media:/usr/share/nginx/media:ro
+
+volumes:
+  mysql_data:

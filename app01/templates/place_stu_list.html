@@ -40,7 +40,7 @@
                         <td>{{ obj.campus }}</td>
                         <td>{{ obj.get_use_display }}</td>
                         <td>
-                            <a class="btn btn-primary btn-xs" href="/place/{{ request.session.info.id }}/{{ obj.id }}/book/">预 约</a>
+                            <a class="btn btn-primary btn-xs" href="/place/{{ obj.id }}/book/">预 约</a>
                         </td>
                     </tr>
                 {% endfor %}

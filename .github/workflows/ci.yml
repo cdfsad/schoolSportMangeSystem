@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main, schoolSportMangeSystem]
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: mydb1
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      SECRET_KEY: ci-secret-key-for-testing-only-not-for-production-xxxxxxxxxxxx
+      DEBUG: "False"
+      ALLOWED_HOSTS: "127.0.0.1,localhost"
+      DATABASE_URL: mysql://root:root@127.0.0.1:3306/mydb1
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Ruff lint
+        run: ruff check app01 conftest.py
+
+      - name: Ruff format check
+        run: ruff format --check app01 conftest.py
+
+      - name: makemigrations check
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Django check
+        run: python manage.py check
+
+      - name: Run tests
+        run: python -m pytest app01/tests/ --cov-fail-under=65

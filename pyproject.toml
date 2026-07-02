@@ -1,0 +1,21 @@
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["migrations", "staticfiles", "media", ".venv"]
+
+[tool.ruff.lint]
+# E/W: pycodestyle, F: pyflakes, I: isort
+select = ["E", "F", "W", "I"]
+ignore = [
+    "E501",   # 行长由 format 统一处理
+    "E701",   # 单行 if/for(项目历史风格)
+    "E722",   # 裸 except(已在逐步修复)
+    "F401",   # 未使用 import(migration 中常见,暂忽略)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app01"]
+
+[tool.ruff.format]
+quote-style = "preserve"
+indent-style = "space"

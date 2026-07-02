@@ -68,7 +68,7 @@
                 bid = $(this).attr("id");
                 $.ajax({
                     url: "/book/agree/",
-                    type: "GET",
+                    type: "POST",
                     data: {
                         bid: bid
                     },
@@ -86,7 +86,7 @@
                 bid = $(this).attr("id");
                 $.ajax({
                     url: "/book/delete/",
-                    type: "GET",
+                    type: "POST",
                     data: {
                         bid: bid
                     },

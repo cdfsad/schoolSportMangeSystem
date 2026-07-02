@@ -14,13 +14,20 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
 
 from app01.views import account, stu, place, book, data
+
+# 自定义错误页(P2a,DEBUG=False 时生效)
+handler404 = 'app01.views.errors.page_404'
+handler500 = 'app01.views.errors.page_500'
 
 
 urlpatterns = [
     # path('admin/', admin.site.urls),
+
+    # ===== P2a: REST API(挂载 /api/v1/,JWT 认证)=====
+    path('api/v1/', include('app01.api.urls')),
 
     # 首页
     path('index/', account.index),
@@ -33,7 +40,7 @@ urlpatterns = [
     # 注销
     path('logout/', account.logout),
     # 修改密码
-    path('account/<int:nid>/reset/', account.change_pwd),
+    path('account/reset/', account.change_pwd),
     # 验证码
     path('image/code/', account.image_code),
 
@@ -71,7 +78,7 @@ urlpatterns = [
     path('place/delete/', place.place_delete),
 
     # 预约
-    path('place/<int:nid>/<int:pid>/book/', book.place_book),
+    path('place/<int:pid>/book/', book.place_book),
     # 预约确定
     path('book/save/', book.book_save),
     # 我的预约

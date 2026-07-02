@@ -36,7 +36,7 @@
                     <a class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
                        aria-expanded="false">{{ request.session.info.name }}<span class="caret"></span></a>
                     <ul class="dropdown-menu">
-                        <li><a href="/account/{{ request.session.info.id }}/reset/">修改密码</a></li>
+                        <li><a href="/account/reset/">修改密码</a></li>
                         <li role="separator" class="divider"></li>
                         <li><a href="/logout/">注销</a></li>
                     </ul>
@@ -51,6 +51,32 @@
 <script src="{% static 'js/jquery-3.6.0.min.js' %}"></script>
 <script src="{% static 'plugins/bootstrap-3.4.1-dist/js/bootstrap.min.js' %}"></script>
 <script>
+    // CSRF 全局配置:AJAX 请求自动携带 token(移除 @csrf_exempt 后必需)
+    // 参考 Django 官方文档 https://docs.djangoproject.com/en/5.1/howto/csrf/
+    function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = jQuery.trim(cookies[i]);
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+            // 仅对不安全方法(POST/PUT/DELETE)且同源请求携带 CSRF token
+            if (!/^(GET|HEAD|OPTIONS|TRACE)$/.test(settings.type) && !this.crossDomain) {
+                xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
+            }
+        }
+    });
+
     $('li.dropdown').mouseover(function () {
         $(this).addClass('open');
     }).mouseout(function () {

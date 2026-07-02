@@ -1,13 +1,14 @@
-from django.utils.deprecation import MiddlewareMixin
 from django.shortcuts import HttpResponse, redirect
-
+from django.utils.deprecation import MiddlewareMixin
 
 from app01 import models
 
 
 class AuthMiddleware(MiddlewareMixin):
-
     def process_request(self, request):
+        # P2a:API 路径由 DRF JWT 认证处理,不走 SSR session 校验
+        if request.path_info.startswith('/api/'):
+            return
         # 如果方法中没有返回值（返回None），继续向后走
         # 如果有返回值，就不能继续
         # 0.排除那些不需要登录就能访问的页面

@@ -1,6 +1,7 @@
-from app01 import models
 from django.http import JsonResponse
 from django.shortcuts import render
+
+from app01 import models
 
 
 def data_statistics(request):
@@ -11,20 +12,14 @@ def data_statistics(request):
     c5 = models.Book.objects.filter(place_name__name__contains="羽毛球").count()
     legend = ['预约情况']
     x_axis = ['篮球', '排球', '网球', '乒乓球', '羽毛球']
-    series = [
-        {
-            'name': '预约情况',
-            'type': 'bar',
-            'data': [c1, c2, c3, c4, c5]
-        }
-    ]
+    series = [{'name': '预约情况', 'type': 'bar', 'data': [c1, c2, c3, c4, c5]}]
     result = {
         'status': True,
         'data': {
             'legend': legend,
             'x_axis': x_axis,
             'series': series,
-        }
+        },
     }
     return JsonResponse(result)
 

@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.vite/
+*.log
+.DS_Store
+*.local
+
+# vue-tsc composite build artifacts
+*.tsbuildinfo
+vite.config.d.ts
+vite.config.js
