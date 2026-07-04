@@ -25,10 +25,9 @@ django-cors-headers==4.6.0
 redis==5.2.0
 django-redis==5.4.0
 
-# ===== 异步(P3 Celery,本轮不解注释)=====
-# celery==5.4.0
-# django-celery-beat==2.7.0
-#
+# ===== 异步(P3b Celery + beat)=====
+celery==5.4.0
+django-celery-beat==2.7.0
 # 测试/代码质量(P1)
 pytest==8.3.3
 pytest-django==4.9.0

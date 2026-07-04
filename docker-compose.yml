@@ -1,4 +1,4 @@
-version: '3.8'
+name: sports-venue  # 显式项目名(中文目录名会导致 docker compose 派生空项目名)
 
 services:
   db:
@@ -31,6 +31,8 @@ services:
     environment:
       # 容器内连接 db 服务(主机名为服务名 db)
       DATABASE_URL: mysql://root:${DB_PASSWORD:-INTJ123456}@db:3306/mydb1
+      # P3b:Celery broker(覆盖 .env 的 locmem://,使容器内 EAGER=False 走真实 worker)
+      REDIS_URL: redis://redis:6379/0
       SECURE_SSL_REDIRECT: "False"
       SESSION_COOKIE_SECURE: "False"
       CSRF_COOKIE_SECURE: "False"
@@ -48,6 +50,34 @@ services:
       sh -c "python manage.py migrate --noinput &&
              python manage.py collectstatic --noinput &&
              gunicorn --config gunicorn.conf.py 高校体育场馆管理系统.wsgi:application"
+
+  celery-worker:
+    # P3b:Celery worker,异步执行 send_notification 等任务
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: mysql://root:${DB_PASSWORD:-INTJ123456}@db:3306/mydb1
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: celery -A 高校体育场馆管理系统 worker -l info
+
+  celery-beat:
+    # P3b:Celery beat 定时调度(每 30 分钟扫违约 scan_no_shows)
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: mysql://root:${DB_PASSWORD:-INTJ123456}@db:3306/mydb1
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: celery -A 高校体育场馆管理系统 beat -l info
 
   nginx:
     # 多阶段构建:node 构 Vue dist → nginx 托管(nginx.conf 已 COPY 入镜像)

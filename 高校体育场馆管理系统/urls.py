@@ -13,10 +13,11 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.contrib import admin
 from django.urls import include, path
 
-from app01.views import account, stu, place, book, data
+from app01.views import account, book, data, place, stu
 
 # 自定义错误页(P2a,DEBUG=False 时生效)
 handler404 = 'app01.views.errors.page_404'
@@ -25,10 +26,8 @@ handler500 = 'app01.views.errors.page_500'
 
 urlpatterns = [
     # path('admin/', admin.site.urls),
-
     # ===== P2a: REST API(挂载 /api/v1/,JWT 认证)=====
     path('api/v1/', include('app01.api.urls')),
-
     # 首页
     path('index/', account.index),
     # 学生用户登录
@@ -43,11 +42,9 @@ urlpatterns = [
     path('account/reset/', account.change_pwd),
     # 验证码
     path('image/code/', account.image_code),
-
     # 用户
     path('common/', account.common),
     path('admin/', account.admin),
-
     # 学生管理
     path('student/list/', stu.stu_list),
     # 上传
@@ -60,7 +57,6 @@ urlpatterns = [
     path('student/edit/save/', stu.stu_edit_save),
     # 删除
     path('student/delete/', stu.stu_delete),
-
     # 场地管理
     # 东校区
     path('place/list1/', place.place_list1),
@@ -76,7 +72,6 @@ urlpatterns = [
     path('place/edit/save/', place.place_edit_save),
     # 删除
     path('place/delete/', place.place_delete),
-
     # 预约
     path('place/<int:pid>/book/', book.place_book),
     # 预约确定
@@ -92,10 +87,7 @@ urlpatterns = [
     path('book/delete/', book.book_delete),
     # 审批预约
     path('book/agree/', book.book_agree),
-
     # 数据统计
     path('data/statistics/', data.data_statistics),
     path('chart/list/', data.chart_list),
-
-
 ]

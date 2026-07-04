@@ -258,6 +258,54 @@ def test_reject_booking_notifies_user_with_reason(db):
     assert '场地维护' in n.content
 
 
+# ===== P3b: 违约扫描(celery task,EAGER 模式同步执行)=====
+
+
+def test_scan_no_shows_flips_overdue_booking(db):
+    """已过期的已通过预约 → scan_no_shows 标记 status=5 + 发 booking_no_show 通知。"""
+    from app01.tasks import scan_no_shows
+
+    user = CustomUserFactory(role='student')
+    place = PlaceFactory()
+    # 构造一个已过期的已通过预约(开始时间在 1 小时前)
+    start = timezone.now() - timedelta(hours=1)
+    booking = Book.objects.create(
+        book_name=user,
+        place_name=place,
+        campus=place.campus,
+        people='2',
+        date=start.strftime('%Y-%m-%d'),
+        time=f'{start.strftime("%H:%M")}-{(start + timedelta(hours=1)).strftime("%H:%M")}',
+        status=1,
+    )
+    count = scan_no_shows(grace_minutes=0)
+    assert count >= 1
+    booking.refresh_from_db()
+    assert booking.status == 5
+    assert Notification.objects.filter(user=user, type='booking_no_show').exists()
+
+
+def test_scan_no_shows_skips_future_booking(db):
+    """未过期的预约不被标记。"""
+    from app01.tasks import scan_no_shows
+
+    user = CustomUserFactory(role='student')
+    place = PlaceFactory()
+    start = timezone.now() + timedelta(days=2)  # 未来
+    booking = Book.objects.create(
+        book_name=user,
+        place_name=place,
+        campus=place.campus,
+        people='2',
+        date=start.strftime('%Y-%m-%d'),
+        time=f'{start.strftime("%H:%M")}-{(start + timedelta(hours=1)).strftime("%H:%M")}',
+        status=1,
+    )
+    scan_no_shows(grace_minutes=0)
+    booking.refresh_from_db()
+    assert booking.status == 1  # 未变
+
+
 # ===== account_service =====
 
 

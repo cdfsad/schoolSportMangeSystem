@@ -11,7 +11,7 @@ from datetime import timedelta
 from django.db import transaction
 from django.utils import timezone
 
-from app01.models import AuditLog, Book, BookingRule, Campus, Notification, Place
+from app01.models import AuditLog, Book, BookingRule, Campus, Place
 
 
 class BookingError(Exception):
@@ -35,10 +35,13 @@ def _log_audit(user, action, target_model, target_id, detail=None, ip=''):
 
 
 def _notify(user, ntype, title, content=''):
-    """创建站内通知(P3a,同步写入;P3b 改 Celery 异步)。"""
+    """发送站内通知(P3b:经 Celery 异步;EAGER 模式下 .delay() 同步执行)。"""
     if user is None:
         return
-    Notification.objects.create(user=user, type=ntype, title=title, content=content)
+    # 延迟导入避循环(tasks.scan_no_shows 反向调本模块 _parse_booking_start/_notify)
+    from app01.tasks import send_notification
+
+    send_notification.delay(user.id, ntype, title, content)
 
 
 def _resolve_rule(place):
