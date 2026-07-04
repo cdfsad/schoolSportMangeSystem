@@ -34,6 +34,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/MyBookings.vue'),
       },
       { path: 'profile', name: 'profile', component: () => import('@/views/Profile.vue') },
+      {
+        path: 'notifications',
+        name: 'notifications',
+        component: () => import('@/views/Notifications.vue'),
+      },
     ],
   },
   {

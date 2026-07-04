@@ -1,12 +1,19 @@
 """API 层测试(P2a)。用 APIClient + JWT,覆盖 auth/资源 CRUD/权限/预约/统计。"""
 
+from datetime import date, timedelta
+
 import pytest
 from rest_framework.test import APIClient
 
-from app01.models import AuditLog
+from app01.models import AuditLog, Notification
 from app01.tests.factories import CampusFactory, CustomUserFactory, PlaceFactory
 
 HOST = {'HTTP_HOST': '127.0.0.1'}
+
+
+def _future(days=3):
+    """未来日期字符串(ISO),默认 3 天后(在默认 advance_days=7 窗口内,且远超 cancel_deadline=2h)。"""
+    return (date.today() + timedelta(days=days)).isoformat()
 
 
 @pytest.fixture
@@ -103,7 +110,7 @@ def test_create_booking_success(admin_client):
         '/api/v1/books/',
         {
             'place': place.id,
-            'date': '2025-07-01',
+            'date': _future(3),
             'bkTime': '10:00-11:00',
             'people': '5',
             'campus': place.campus.id,
@@ -118,7 +125,7 @@ def test_create_booking_conflict_rejected(admin_client):
     place = PlaceFactory(people='10')
     payload = {
         'place': place.id,
-        'date': '2025-07-02',
+        'date': _future(4),
         'bkTime': '10:00-11:00',
         'people': '3',
         'campus': place.campus.id,
@@ -135,7 +142,7 @@ def test_cancel_own_booking(admin_client):
         '/api/v1/books/',
         {
             'place': place.id,
-            'date': '2025-07-03',
+            'date': _future(3),
             'bkTime': '10:00-11:00',
             'people': '2',
             'campus': place.campus.id,
@@ -154,7 +161,7 @@ def test_approve_booking_admin(admin_client, student_client):
         '/api/v1/books/',
         {
             'place': place.id,
-            'date': '2025-07-04',
+            'date': _future(3),
             'bkTime': '10:00-11:00',
             'people': '2',
             'campus': place.campus.id,
@@ -167,7 +174,7 @@ def test_approve_booking_admin(admin_client, student_client):
 
 
 def test_student_only_sees_own_bookings(student_client, admin_client):
-    c_stu, stu = student_client
+    c_stu, _ = student_client
     c_admin, _ = admin_client
     place = PlaceFactory(people='10')
     # admin 创建预约
@@ -175,7 +182,7 @@ def test_student_only_sees_own_bookings(student_client, admin_client):
         '/api/v1/books/',
         {
             'place': place.id,
-            'date': '2025-07-05',
+            'date': _future(3),
             'bkTime': '10:00-11:00',
             'people': '4',
             'campus': place.campus.id,
@@ -217,11 +224,11 @@ def test_statistics(admin_client):
 # ==================== 拒绝预约(P2c) ====================
 def test_reject_booking_admin(admin_client, student_client):
     c_admin, _ = admin_client
-    c_stu, _ = student_client
+    c_stu, stu = student_client
     place = PlaceFactory(people='10')
     bid = c_stu.post(
         '/api/v1/books/',
-        {'place': place.id, 'date': '2025-08-01', 'bkTime': '10:00-11:00', 'people': '2', 'campus': place.campus.id},
+        {'place': place.id, 'date': _future(3), 'bkTime': '10:00-11:00', 'people': '2', 'campus': place.campus.id},
         **HOST,
     ).json()['id']
     before = AuditLog.objects.filter(action='reject').count()
@@ -238,7 +245,7 @@ def test_reject_non_pending_returns_400(admin_client, student_client):
     place = PlaceFactory(people='10')
     bid = c_stu.post(
         '/api/v1/books/',
-        {'place': place.id, 'date': '2025-08-02', 'bkTime': '10:00-11:00', 'people': '2', 'campus': place.campus.id},
+        {'place': place.id, 'date': _future(3), 'bkTime': '11:00-12:00', 'people': '2', 'campus': place.campus.id},
         **HOST,
     ).json()['id']
     # 先通过再拒绝 → 400(仅待审批可拒绝)
@@ -253,7 +260,7 @@ def test_reject_booking_student_forbidden(student_client, admin_client):
     place = PlaceFactory(people='10')
     bid = c_admin.post(
         '/api/v1/books/',
-        {'place': place.id, 'date': '2025-08-03', 'bkTime': '10:00-11:00', 'people': '2', 'campus': place.campus.id},
+        {'place': place.id, 'date': _future(3), 'bkTime': '10:00-11:00', 'people': '2', 'campus': place.campus.id},
         **HOST,
     ).json()['id']
     r = c_stu.post(f'/api/v1/books/{bid}/reject/', **HOST)
@@ -267,7 +274,7 @@ def test_approve_writes_audit_log(admin_client, student_client):
     place = PlaceFactory(people='10')
     bid = c_stu.post(
         '/api/v1/books/',
-        {'place': place.id, 'date': '2025-08-04', 'bkTime': '10:00-11:00', 'people': '2', 'campus': place.campus.id},
+        {'place': place.id, 'date': _future(3), 'bkTime': '10:00-11:00', 'people': '2', 'campus': place.campus.id},
         **HOST,
     ).json()['id']
     before = AuditLog.objects.filter(action='approve').count()
@@ -280,7 +287,7 @@ def test_cancel_writes_audit_log(admin_client):
     place = PlaceFactory(people='10')
     bid = c.post(
         '/api/v1/books/',
-        {'place': place.id, 'date': '2025-08-05', 'bkTime': '10:00-11:00', 'people': '2', 'campus': place.campus.id},
+        {'place': place.id, 'date': _future(3), 'bkTime': '10:00-11:00', 'people': '2', 'campus': place.campus.id},
         **HOST,
     ).json()['id']
     before = AuditLog.objects.count()
@@ -323,3 +330,42 @@ def test_campus_destroy_student_forbidden(student_client):
     campus = CampusFactory()
     r = c.delete(f'/api/v1/campuses/{campus.id}/', **HOST)
     assert r.status_code == 403
+
+
+# ==================== 通知(P3a) ====================
+def test_create_booking_creates_notification(admin_client):
+    c, admin = admin_client
+    place = PlaceFactory(people='10')
+    before = Notification.objects.filter(user=admin).count()
+    c.post(
+        '/api/v1/books/',
+        {'place': place.id, 'date': _future(3), 'bkTime': '10:00-11:00', 'people': '2', 'campus': place.campus.id},
+        **HOST,
+    )
+    assert Notification.objects.filter(user=admin).count() == before + 1
+
+
+def test_notification_unread_count(admin_client, student_client):
+    c_admin, _ = admin_client
+    c_stu, stu = student_client
+    place = PlaceFactory(people='10')
+    # 学生提交预约 → 学生收到一条通知
+    c_stu.post(
+        '/api/v1/books/',
+        {'place': place.id, 'date': _future(3), 'bkTime': '10:00-11:00', 'people': '2', 'campus': place.campus.id},
+        **HOST,
+    )
+    r = c_stu.get('/api/v1/notifications/unread-count/', **HOST)
+    assert r.status_code == 200
+    assert r.json()['count'] >= 1
+
+
+def test_notification_read_all(admin_client):
+    c, admin = admin_client
+    # 直接造 2 条未读
+    from app01.models import Notification
+
+    Notification.objects.create(user=admin, type='system', title='t1', content='')
+    Notification.objects.create(user=admin, type='system', title='t2', content='')
+    c.post('/api/v1/notifications/read-all/', **HOST)
+    assert Notification.objects.filter(user=admin, is_read=False).count() == 0

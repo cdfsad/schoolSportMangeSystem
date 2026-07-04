@@ -1,7 +1,14 @@
 """IDOR 与 CSRF 安全测试(P0/P1 安全核心)。"""
 
+from datetime import date, timedelta
+
 from app01.models import Book
 from app01.tests.factories import CustomUserFactory, PlaceFactory
+
+
+def _future(days=3):
+    """未来日期字符串(ISO),避开 cancel_deadline 校验。"""
+    return (date.today() + timedelta(days=days)).isoformat()
 
 
 def test_change_pwd_uses_session_id_not_url(client_as, db, host):
@@ -44,7 +51,7 @@ def test_student_cannot_cancel_others_booking(client_as, db, host):
         place_name=place,
         campus=place.campus,
         people='5',
-        date='2025-01-01',
+        date=_future(3),
         time='10:00-11:00',
         status=0,
     )
@@ -63,7 +70,7 @@ def test_owner_can_cancel_own_booking(client_as, db, host):
         place_name=place,
         campus=place.campus,
         people='5',
-        date='2025-01-02',
+        date=_future(3),
         time='10:00-11:00',
         status=0,
     )

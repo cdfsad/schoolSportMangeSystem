@@ -255,6 +255,12 @@ class NotificationViewSet(
         self.get_queryset().update(is_read=True)
         return Response({'status': 'all read'})
 
+    @action(detail=False, methods=['get'], url_path='unread-count')
+    def unread_count(self, request):
+        """当前用户未读通知数(前端铃铛 badge 轮询用)。"""
+        count = self.get_queryset().filter(is_read=False).count()
+        return Response({'count': count})
+
 
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     """审计日志(管理员只读)。"""

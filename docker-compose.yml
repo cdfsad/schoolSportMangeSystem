@@ -50,13 +50,15 @@ services:
              gunicorn --config gunicorn.conf.py 高校体育场馆管理系统.wsgi:application"
 
   nginx:
-    image: nginx:alpine
+    # 多阶段构建:node 构 Vue dist → nginx 托管(nginx.conf 已 COPY 入镜像)
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
     depends_on:
       - web
     ports:
       - "80:80"
     volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./staticfiles:/usr/share/nginx/static:ro
       - ./media:/usr/share/nginx/media:ro
 

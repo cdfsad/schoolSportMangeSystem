@@ -57,7 +57,13 @@
           <el-icon><ArrowLeft /></el-icon>
           返回前台
         </el-button>
-        <el-dropdown>
+        <div style="display: flex; align-items: center; gap: 16px">
+          <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99">
+            <el-icon :size="20" style="cursor: pointer" @click="router.push('/notifications')">
+              <Bell />
+            </el-icon>
+          </el-badge>
+          <el-dropdown>
           <span style="cursor: pointer; display: flex; align-items: center; gap: 6px">
             <el-icon><User /></el-icon>
             {{ userStore.user?.first_name || userStore.user?.username || '管理员' }}
@@ -70,6 +76,7 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
+        </div>
       </el-header>
       <el-main>
         <router-view />
@@ -79,10 +86,12 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowDown,
   ArrowLeft,
+  Bell,
   Calendar,
   Clock,
   DataAnalysis,
@@ -93,15 +102,37 @@ import {
   User,
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
+import { getUnreadCount } from '@/api/notification'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const unreadCount = ref(0)
+let pollTimer: ReturnType<typeof setInterval> | null = null
 
 // 进入管理后台时若已登录但未加载用户信息,则补拉一次
 if (userStore.token && !userStore.user) {
   userStore.loadUserInfo().catch(() => {})
 }
+
+async function loadUnread() {
+  if (!userStore.token) return
+  try {
+    const data = await getUnreadCount()
+    unreadCount.value = data.count
+  } catch {
+    // 401 等由拦截器处理
+  }
+}
+
+onMounted(() => {
+  loadUnread()
+  pollTimer = setInterval(loadUnread, 30000)
+})
+
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer)
+})
 
 async function handleLogout() {
   await userStore.logout()

@@ -1,0 +1,18 @@
+# Python / Django
+.venv/
+__pycache__/
+*.pyc
+db.sqlite3
+
+# Node / 前端构建产物(容器内重新构建,不入 context)
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# 本地数据与缓存
+mysql_data/
+media/
+staticfiles/
+.idea/
+.git/
+*.log
