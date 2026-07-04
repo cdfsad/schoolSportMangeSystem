@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import * as authApi from '@/api/auth'
 
 export const useUserStore = defineStore('user', () => {
   const token = ref<string>(localStorage.getItem('access_token') || '')
   const refreshToken = ref<string>(localStorage.getItem('refresh_token') || '')
   const user = ref<authApi.UserInfo | null>(null)
+  const isAdmin = computed(() => user.value?.role === 'admin')
 
   async function login(payload: authApi.LoginPayload) {
     const data = await authApi.login(payload)
@@ -37,5 +38,5 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  return { token, refreshToken, user, login, loadUserInfo, logout }
+  return { token, refreshToken, user, isAdmin, login, loadUserInfo, logout }
 })

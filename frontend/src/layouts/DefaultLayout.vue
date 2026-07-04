@@ -20,6 +20,7 @@
           <el-menu-item index="/">首页</el-menu-item>
           <el-menu-item index="/places">场地</el-menu-item>
           <el-menu-item index="/my-bookings">我的预约</el-menu-item>
+          <el-menu-item v-if="userStore.isAdmin" index="/admin">管理后台</el-menu-item>
         </el-menu>
       </div>
       <el-dropdown>

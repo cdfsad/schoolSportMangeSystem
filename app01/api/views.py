@@ -27,6 +27,11 @@ from app01.api.serializers import (
 from app01.services import account_service, booking_service, place_service
 
 
+def _client_ip(request):
+    """从请求中提取客户端 IP(审计用,空字符串兜底)。"""
+    return request.META.get('REMOTE_ADDR', '') or ''
+
+
 # ==================== Auth ====================
 class MyTokenObtainPairView(TokenObtainPairView):
     """JWT 登录(自定义 serializer,payload 加 role)。"""
@@ -61,9 +66,7 @@ class ChangePasswordView(APIView):
     def post(self, request):
         old = request.data.get('old_password')
         new = request.data.get('new_password')
-        ok, msg = account_service.change_password(
-            user=request.user, old_password=old, new_password=new
-        )
+        ok, msg = account_service.change_password(user=request.user, old_password=old, new_password=new)
         if not ok:
             return Response({'detail': msg}, status=400)
         return Response({'detail': '密码已修改'})
@@ -83,12 +86,23 @@ class UserImportView(APIView):
 
 
 # ==================== ViewSets ====================
-class CampusViewSet(viewsets.ReadOnlyModelViewSet):
-    """校区(只读列表)。"""
+class CampusViewSet(viewsets.ModelViewSet):
+    """校区:GET 所有人 / CUD 管理员。"""
 
-    queryset = models.Campus.objects.filter(is_active=True)
+    queryset = models.Campus.objects.all().order_by('sort_order', 'id')
     serializer_class = CampusSerializer
-    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            return [IsAuthenticated()]
+        return [IsAdmin()]
+
+    def get_queryset(self):
+        qs = models.Campus.objects.all().order_by('sort_order', 'id')
+        # 非管理员仅见启用校区
+        if self.request.user.role != 'admin':
+            qs = qs.filter(is_active=True)
+        return qs
 
 
 class CustomUserViewSet(viewsets.ModelViewSet):
@@ -161,7 +175,7 @@ class BookViewSet(
         return BookCreateSerializer if self.action == 'create' else BookReadSerializer
 
     def get_permissions(self):
-        if self.action == 'approve':
+        if self.action in ('approve', 'reject'):
             return [IsAdmin()]
         if self.action == 'cancel':
             return [IsOwnerOrAdmin()]
@@ -182,21 +196,37 @@ class BookViewSet(
 
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None):
-        ok, msg = booking_service.cancel_booking(booking_id=pk, user=request.user)
+        ok, msg = booking_service.cancel_booking(booking_id=pk, user=request.user, ip=_client_ip(request))
         if not ok:
             return Response({'detail': msg}, status=400)
         return Response({'status': 'cancelled'})
 
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
-        booking = booking_service.approve_booking(booking_id=pk, approver=request.user)
+        booking = booking_service.approve_booking(booking_id=pk, approver=request.user, ip=_client_ip(request))
         if not booking:
-            return Response({'detail': '预约不存在'}, status=404)
+            return Response({'detail': '预约不存在或不可审批'}, status=400)
+        return Response(BookReadSerializer(booking).data)
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """拒绝预约(仅待审批,body 可带 reject_reason)。"""
+        reason = request.data.get('reject_reason', '')
+        booking = booking_service.reject_booking(
+            booking_id=pk,
+            approver=request.user,
+            reject_reason=reason,
+            ip=_client_ip(request),
+        )
+        if not booking:
+            return Response({'detail': '预约不存在或不可拒绝'}, status=400)
         return Response(BookReadSerializer(booking).data)
 
     def perform_destroy(self, instance):
-        """管理员删除预约(走 service)。"""
-        booking_service.admin_cancel_booking(booking_id=instance.id)
+        """管理员删除预约(走 service,记审计)。"""
+        booking_service.admin_cancel_booking(
+            booking_id=instance.id, admin=self.request.user, ip=_client_ip(self.request)
+        )
 
 
 class BookingRuleViewSet(viewsets.ModelViewSet):
